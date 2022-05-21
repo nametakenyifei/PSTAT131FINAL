@@ -25,20 +25,142 @@ library(klaR)
 library(ISLR)
 library(ISLR2)
 library(purrr)
+library(janitor)
 tidymodels_prefer()
 loldata <- read_csv("high_diamond_ranked_10min.csv")
 ```
-## R Markdown
+## Begin tidying
 
 ```{r}
+lol <- clean_names(loldata)
+lol
+```
+```{r }
+lol <-  lol[ , 0:21]
+lol
+```
+
+```{r }
+lol %>% 
+  ggplot(aes(x = blue_wins)) +
+  geom_histogram(bins = 3)
+# there is a very slight difference between the number of blue win and lose
+```
+## Setting 
+
+```{r }
+set.seed(1010)
+lol_split <- lol %>% 
+  initial_split(strata = blue_wins, prop = 0.75)
+lol_train <- training(lol_split)
+lol_test <- testing(lol_split)
+dim(lol_train)
+
+```
+```{r }
+lol_train %>% 
+  select(is.numeric) %>% 
+  cor(use = "complete.obs") %>% 
+  corrplot(type = "lower", diag = FALSE)
 
 ```
 
-## Including Plots
+```{r }
 
-You can also embed plots, for example:
+pokemon_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
+pokemon_folds
+
+```
+
+cols = ["gameId", "redFirstBlood", 'redKills', 'redEliteMonsters',
+        'redDragons', 'redTotalMinionsKilled', 
+        'redTotalJungleMinionsKilled', 'redGoldDiff',
+        'redExperienceDiff', 'redCSPerMin', 'redGoldPerMin',
+        'redHeralds', 'blueGoldDiff', 'blueExperienceDiff', 
+        'blueCSPerMin', 'blueGoldPerMin', 'blueTotalMinionsKilled']
+
+
 
 ```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
 
 ```
 
