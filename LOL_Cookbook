@@ -1,0 +1,85 @@
+Data source: League of Legends Diamond Ranked Games (10 min)
+Link: https://www.kaggle.com/datasets/bobbyscience/league-of-legends-diamond-ranked-games-10-min?datasetId=600276
+
+gameId: Unique RIOT ID of the game. Can be used with the Riot Games API
+
+blueWardsPlaced: Number of warding totems placed by the blue team on the map
+
+blueWardsDestroyed: Number of enemy warding totems the blue team has destroyed
+
+blueFirstBlood: First kill of the game. 1 if the blue team did the first kill, 0 otherwise
+
+blueKills: Number of enemies killed by the blue team
+
+blueDeaths: Number of deaths (blue team)
+
+blueAssists: Number of kill assists (blue team)
+
+blueEliteMonsters: Number of elite monsters killed by the blue team (Dragons and Heralds)
+
+blueDragons: Number of dragons killed by the blue team
+
+blueHeralds: Number of heralds killed by the blue team
+
+blueTowersDestroyed: Number of structures destroyed by the blue team (towers...)
+
+blueTotalGold: Blue team total gold
+
+blueAvgLevel: Blue team average champion level
+
+blueTotalExperience: Blue team total experience
+
+blueTotalMinionsKilled: Blue team total minions killed (CS)
+
+blueTotalJungleMinionsKilled: Blue team total jungle monsters killed
+
+blueGoldDiff: Blue team gold difference compared to the enemy team
+
+blueExperienceDiff: Blue team experience difference compared to the enemy team
+
+blueCSPerMin: Blue team CS (minions) per minute
+
+blueGoldPerMin: Blue team gold per minute
+
+redWardsPlaced: Number of warding totems placed by the red team on the map
+
+redWardsDestroyed: Number of enemy warding totems the red team has destroyed
+
+redFirstBlood: First kill of the game. 1 if the red team did the first kill, 0 otherwise
+
+redKills: Number of enemies killed by the red team
+
+redDeaths: Number of deaths (red team)
+
+redAssists: Number of kill assists (red team)
+
+redEliteMonsters: Number of elite monsters killed by the red team (Dragons and Heralds)
+
+redDragons: Number of dragons killed by the red team
+
+redHeralds: Number of heralds killed by the red team
+
+redTowersDestroyed: Number of structures destroyed by the red team (towers...)
+
+redTotalGold: Red team total gold
+
+redAvgLevel: Red team average champion level
+
+redTotalExperience: Red team total experience
+
+redTotalMinionsKilled: Red team total minions killed (CS)
+
+redTotalJungleMinionsKilled: Red team total jungle monsters killed
+
+redGoldDiff: Red team gold difference compared to the enemy team
+
+redExperienceDiff: Red team experience difference compared to the enemy team
+
+redCSPerMin: Red team CS (minions) per minute
+
+redGoldPerMin: Red team gold per minute
+
+
+
+
+
