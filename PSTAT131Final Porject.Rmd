@@ -12,6 +12,25 @@ code_folding: show
 knitr::opts_chunk$set(echo = TRUE, message = FALSE,
                       warning = FALSE)
 ```
+
+## Introduction
+
+![](/Users/codenametaken/Downloads/lol.jpg)
+
+### About This Project
+
+|       If you recognize characters from the picture above, you can probably tell we are going to explore the E sport/ video games field in this project. We are looking more specifically into the determining factors for winning a match in a game with  the notoriously toxic gaming community, League of Legends. There are many types of people in this world, and a lot of us fall into two categories, the The League of Legends player category, and the victims of the first category, the player's friend who get forced to watch them playing knowing they are going to lose and even have a temper tantrum afterwards sometimes category. I am a part of the latter group, and to avoid spending extra half an hour watching/playing a game that I know is going to lose, which will lead us to a bad mental state, our friendships on the edge, I want to make a model that can predict the game result as accurately as possible given the first ten minutes game play statistics. Or at least get to know what the most important factors in winning a match are.
+
+### About This Dataset
+
+|     The League of Legends Diamond Ranked Games dataset includes the first ten minutes statistics of approximately ten thousands ranked League of Legends matches (solo queue) ranging from diamond to master ranking. For background information, League of Legends is a multiplayer online battle arena (MOBA) game where there are 3 lanes, a jungle, and 5 player roles each for the 2 teams (blue and red). The first one to take down the enemy Nexus wins the game. 
+
+|       Here is some basic information about the The  League of Legends Diamond Ranked Games dataset. The data is obtained from user MICHEL’S FANBOI who seems to have changed their username pretty frequently, on Kaggle, and their source is Riot Games, the developer of League of Legends, API. You can find the dataset following the link here https://www.kaggle.com/datasets/bobbyscience/league-of-legends-diamond-ranked-games-10-min?resource=download. In this dataset there are 9879 observations, and 38 predictors in total.
+
+
+## Begin tidying
+
+### Loading Packages and Data
 ```{r}
 library(ggplot2)
 library(tidyverse)
@@ -27,42 +46,80 @@ library(ISLR2)
 library(purrr)
 library(janitor)
 tidymodels_prefer()
-loldata <- read_csv("high_diamond_ranked_10min.csv")
 ```
-## Begin tidying
 
 ```{r}
-lol <- clean_names(loldata)
-lol
+loldata <- read_csv("high_diamond_ranked_10min.csv")
 ```
+
+Before tidying we want to make sure we are not working with a significant amount of missing data. If we do, we want to make sure to tidy the records with significant amount of missing entries out for better accuracy.
+
+```{r }
+is.null(loldata)
+```
+Since we do not have any null entries, wee can directly move on to the next part, normally we would need to deselect some rows or fill in the null with zeros before moving on.
+
+Although from a glance the variable names look pretty unique and not problem causing, we want to use clean the names to avoid potential problems in the future, such as forgetting to capitalize certain letters in the variable name.
+
+```{r}
+# save the cleaned data
+lol <- clean_names(loldata)
+
+# print the new names
+# for later variable selection purpose, also makes life easier
+colnames(lol) 
+```
+
+
+Since there are only two teams, Blue and Red, and many of the variables are coded in 1 and 0 that represents either blue or red got it just in the opposite way, a lot of them are repetitive to look at.For example, there are if the entry for our blue_wins is 0, then we know the corresponding entry for red_wins is 1. So we want to deselect some repetitive variables from our data set.
+
 ```{r }
 lol <-  lol[ , 0:21]
-lol
 ```
+
+
+## Setting Seed and Data Spliting
+
+The year is 2022 so I am setting the seed to be 2022. It is easy to remember, and it is not too small.
+
+The data is split with a 75% training, 25% testing split. Stratified with blue_wins.
+
+
+```{r }
+set.seed(2022)
+
+lol_split <- lol %>% 
+  initial_split(strata = blue_wins, prop = 0.75)
+lol_train <- training(lol_split)
+lol_test <- testing(lol_split)
+
+dim(lol_train) # check if we have the right proportion
+
+```
+
+## Exploratory Data Analysis
 
 ```{r }
 lol %>% 
   ggplot(aes(x = blue_wins)) +
   geom_histogram(bins = 3)
-# there is a very slight difference between the number of blue win and lose
 ```
-## Setting 
+From the result we can see there is a very slight difference(insignificant) between the number of blue win and lose
 
-```{r }
-set.seed(1010)
-lol_split <- lol %>% 
-  initial_split(strata = blue_wins, prop = 0.75)
-lol_train <- training(lol_split)
-lol_test <- testing(lol_split)
-dim(lol_train)
+Here we are checking the correlation between all the variables, but we specifically need to pay more attention to what is correlated with blue_wins
 
+```{r, fig.height = 10, fig.width = 10 }
+lol %>% 
+  select(is.numeric) %>% 
+  cor(use = "complete.obs") %>% 
+  corrplot(type = "lower", diag = FALSE)
 ```
-```{r }
+
+```{r, fig.height = 10, fig.width = 10 }
 lol_train %>% 
   select(is.numeric) %>% 
   cor(use = "complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE)
-
 ```
 
 ```{r }
@@ -159,9 +216,6 @@ cols = ["gameId", "redFirstBlood", 'redKills', 'redEliteMonsters',
 ```
 
 
-```{r }
+## Modeling
 
-
-```
-
-
+## Conclusion

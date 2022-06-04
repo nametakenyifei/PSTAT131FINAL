@@ -3,6 +3,7 @@ Link: https://www.kaggle.com/datasets/bobbyscience/league-of-legends-diamond-ran
 
 gameId: Unique RIOT ID of the game. Can be used with the Riot Games API
 
+blueWins: The target column. 1 if the blue team has won, 0 otherwise.
 blueWardsPlaced: Number of warding totems placed by the blue team on the map
 
 blueWardsDestroyed: Number of enemy warding totems the blue team has destroyed
