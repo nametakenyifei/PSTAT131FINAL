@@ -49,7 +49,7 @@ tidymodels_prefer()
 ```
 
 ```{r}
-loldata <- read_csv("high_diamond_ranked_10min.csv")
+loldata <- read_csv("DATA/high_diamond_ranked_10min.csv")
 ```
 
 Before tidying we want to make sure we are not working with a significant amount of missing data. If we do, we want to make sure to tidy the records with significant amount of missing entries out for better accuracy.
@@ -71,12 +71,31 @@ colnames(lol)
 ```
 
 
-Since there are only two teams, Blue and Red, and many of the variables are coded in 1 and 0 that represents either blue or red got it just in the opposite way, a lot of them are repetitive to look at.For example, there are if the entry for our blue_wins is 0, then we know the corresponding entry for red_wins is 1. So we want to deselect some repetitive variables from our data set.
+Since there are only two teams, Blue and Red, and many of the variables are coded in 1 and 0 that represents either blue or red got it just in the opposite way, a lot of them are repetitive to look at. For example, there are if the entry for our blue_wins is 0, then we know the corresponding entry for red_wins is 1. So we want to deselect some repetitive variables from our data set. It does not matter if blue or red wins, if blue loses then obviously red wins. In this case, we will work on classifying if team blue wins or not.
 
 ```{r }
-lol <-  lol[ , 0:21]
+lol_blue <-  lol[ , 0:21]
+colnames(lol_blue) # check if we have the right columns
+```
+For this part please take a look at the Exploratory Data Analysis section first. We want to extract the variables that appears to be significantly correlated with blue_wins.
+
+```{r }
+tidy <- lol_blue[c("game_id", "blue_wins", "blue_first_blood", 
+                   "blue_kills",  "blue_deaths",
+                   "blue_assists","blue_elite_monsters", 
+                   "blue_dragons", "blue_total_gold", 
+                   "blue_avg_level", "blue_total_experience", 
+                   "blue_gold_diff", "blue_experience_diff", 
+                   "blue_total_minions_killed", "blue_cs_per_min", 
+                   "blue_gold_per_min")]
+
 ```
 
+
+```{r }
+tidy
+
+```
 
 ## Setting Seed and Data Spliting
 
@@ -99,14 +118,20 @@ dim(lol_train) # check if we have the right proportion
 
 ## Exploratory Data Analysis
 
+### Check Fairness of Data
+From the result we can see there is a very slight difference(insignificant) between the number of blue win and lose
+
 ```{r }
 lol %>% 
   ggplot(aes(x = blue_wins)) +
   geom_histogram(bins = 3)
 ```
-From the result we can see there is a very slight difference(insignificant) between the number of blue win and lose
 
-Here we are checking the correlation between all the variables, but we specifically need to pay more attention to what is correlated with blue_wins
+### Narrow Down Variables
+
+Here we are checking the correlation between all the variables, but we specifically need to pay more attention to what is correlated with blue_wins.
+
+From the result of this auto-plot, we can see there are variables that correlate with blue_wins at about the same scale but in totally opposite ways, which proves our assumption that there are repetitive variables to be correct. 
 
 ```{r, fig.height = 10, fig.width = 10 }
 lol %>% 
@@ -116,16 +141,22 @@ lol %>%
 ```
 
 ```{r, fig.height = 10, fig.width = 10 }
-lol_train %>% 
+lol_blue %>% 
+  select(is.numeric) %>% 
+  cor(use = "complete.obs") %>% 
+  corrplot(type = "lower", diag = FALSE)
+```
+```{r, fig.height = 10, fig.width = 10 }
+tidy %>% 
   select(is.numeric) %>% 
   cor(use = "complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE)
 ```
 
-```{r }
 
-pokemon_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
-pokemon_folds
+```{r }
+lol_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
+lol_folds
 
 ```
 
