@@ -2,10 +2,11 @@
 title: "PSTAT131 Final Project"
 author: "Yifei Zhang"
 date: '2022-05-11'
-output: pdf_document
-toc: true
-toc_float: true
-code_folding: show
+output:
+    html_document:
+      toc: true
+      toc_float: true
+      code_folding: show
 ---
 
 ```{r setup, include=FALSE}
@@ -28,10 +29,10 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE,
 |       Here is some basic information about the The  League of Legends Diamond Ranked Games dataset. The data is obtained from user MICHEL’S FANBOI who seems to have changed their username pretty frequently, on Kaggle, and their source is Riot Games, the developer of League of Legends, API. You can find the dataset following the link here https://www.kaggle.com/datasets/bobbyscience/league-of-legends-diamond-ranked-games-10-min?resource=download. In this dataset there are 9879 observations, and 38 predictors in total.
 
 
-## Begin tidying
+## Tidying
 
 ### Loading Packages and Data
-```{r}
+```{r }
 library(ggplot2)
 library(tidyverse)
 library(tidymodels)
@@ -45,21 +46,25 @@ library(ISLR)
 library(ISLR2)
 library(purrr)
 library(janitor)
+library(psych) 
 tidymodels_prefer()
 ```
 
 ```{r}
 loldata <- read_csv("DATA/high_diamond_ranked_10min.csv")
 ```
+### Check for Missing Values
 
-Before tidying we want to make sure we are not working with a significant amount of missing data. If we do, we want to make sure to tidy the records with significant amount of missing entries out for better accuracy.
+|       Before tidying we want to make sure we are not working with a significant amount of missing data. If we do, we want to make sure to tidy the records with significant amount of missing entries out for better accuracy.
 
 ```{r }
 is.null(loldata)
 ```
-Since we do not have any null entries, wee can directly move on to the next part, normally we would need to deselect some rows or fill in the null with zeros before moving on.
+### Change Variable Names
 
-Although from a glance the variable names look pretty unique and not problem causing, we want to use clean the names to avoid potential problems in the future, such as forgetting to capitalize certain letters in the variable name.
+|       Since we do not have any null entries, wee can directly move on to the next part, normally we would need to deselect some rows or fill in the null with zeros before moving on.
+
+|       Although from a glance the variable names look pretty unique and not problem causing, we want to use clean the names to avoid potential problems in the future, such as forgetting to capitalize certain letters in the variable name.
 
 ```{r}
 # save the cleaned data
@@ -70,17 +75,19 @@ lol <- clean_names(loldata)
 colnames(lol) 
 ```
 
+### Select important Variables
 
-Since there are only two teams, Blue and Red, and many of the variables are coded in 1 and 0 that represents either blue or red got it just in the opposite way, a lot of them are repetitive to look at. For example, there are if the entry for our blue_wins is 0, then we know the corresponding entry for red_wins is 1. So we want to deselect some repetitive variables from our data set. It does not matter if blue or red wins, if blue loses then obviously red wins. In this case, we will work on classifying if team blue wins or not.
+|       Since there are only two teams, Blue and Red, and many of the variables are coded in 1 and 0 that represents either blue or red got it just in the opposite way, a lot of them are repetitive to look at. For example, there are if the entry for our blue_wins is 0, then we know the corresponding entry for red_wins is 1. So we want to deselect some repetitive variables from our data set. It does not matter if blue or red wins, if blue loses then obviously red wins. In this case, we will work on classifying if team blue wins or not.
 
 ```{r }
 lol_blue <-  lol[ , 0:21]
 colnames(lol_blue) # check if we have the right columns
 ```
-For this part please take a look at the Exploratory Data Analysis section first. We want to extract the variables that appears to be significantly correlated with blue_wins.
+
+|       For this part please take a look at the Exploratory Data Analysis section first. We want to extract the variables that appears to be significantly correlated with blue_wins.
 
 ```{r }
-tidy <- lol_blue[c("game_id", "blue_wins", "blue_first_blood", 
+important <- lol_blue[c("game_id", "blue_wins", "blue_first_blood", 
                    "blue_kills",  "blue_deaths",
                    "blue_assists","blue_elite_monsters", 
                    "blue_dragons", "blue_total_gold", 
@@ -93,15 +100,15 @@ tidy <- lol_blue[c("game_id", "blue_wins", "blue_first_blood",
 
 
 ```{r }
-tidy
+important
 
 ```
 
 ## Setting Seed and Data Spliting
 
-The year is 2022 so I am setting the seed to be 2022. It is easy to remember, and it is not too small.
+|       The year is 2022 so I am setting the seed to be 2022. It is easy to remember, and it is not too small.
 
-The data is split with a 75% training, 25% testing split. Stratified with blue_wins.
+|       The data is split with a 75% training, 25% testing split. Stratified with blue_wins.
 
 
 ```{r }
@@ -119,7 +126,10 @@ dim(lol_train) # check if we have the right proportion
 ## Exploratory Data Analysis
 
 ### Check Fairness of Data
-From the result we can see there is a very slight difference(insignificant) between the number of blue win and lose
+
+|       We want to make sure our data sample was randomly drawn.
+
+|       From the result we can see there is a very slight difference(insignificant) between the number of blue wins and loses.
 
 ```{r }
 lol %>% 
@@ -127,11 +137,20 @@ lol %>%
   geom_histogram(bins = 3)
 ```
 
+### Summary Table
+
+|       Before start working on our model, we want to have a look at the summary table to have a general idea on what we are working with. This is more convenient than looking through our raw dataset that has way too many entries to look at.
+
+```{r}
+describe(lol)
+```
+
+
 ### Narrow Down Variables
 
-Here we are checking the correlation between all the variables, but we specifically need to pay more attention to what is correlated with blue_wins.
+|       Here we are checking the correlation between all the variables, but we specifically need to pay more attention to what is correlated with blue_wins.
 
-From the result of this auto-plot, we can see there are variables that correlate with blue_wins at about the same scale but in totally opposite ways, which proves our assumption that there are repetitive variables to be correct. 
+|       From the result of this auto-plot, we can see there are variables that correlate with blue_wins at about the same scale but in totally opposite ways, which proves our assumption that there are repetitive variables to be correct. 
 
 ```{r, fig.height = 10, fig.width = 10 }
 lol %>% 
@@ -139,6 +158,7 @@ lol %>%
   cor(use = "complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE)
 ```
+|       We want to deselect some variables based on the result of the following graph.
 
 ```{r, fig.height = 10, fig.width = 10 }
 lol_blue %>% 
@@ -146,50 +166,131 @@ lol_blue %>%
   cor(use = "complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE)
 ```
+
+|       Here is the final correlation chart that only includes important variables towards *blue_wins*.
+
 ```{r, fig.height = 10, fig.width = 10 }
-tidy %>% 
+important %>% 
   select(is.numeric) %>% 
   cor(use = "complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE)
 ```
 
+### Principal Components Analysis
 
-```{r }
-lol_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
-lol_folds
+|       Although we are doing supervised learning, we can still use Principal Components Analysis (PCA) to see if the variables are strongly related. We are going to do two PCAs. And from the results we are getting. The relationships between variables seems weak. 
 
-```
-
-cols = ["gameId", "redFirstBlood", 'redKills', 'redEliteMonsters',
-        'redDragons', 'redTotalMinionsKilled', 
-        'redTotalJungleMinionsKilled', 'redGoldDiff',
-        'redExperienceDiff', 'redCSPerMin', 'redGoldPerMin',
-        'redHeralds', 'blueGoldDiff', 'blueExperienceDiff', 
-        'blueCSPerMin', 'blueGoldPerMin', 'blueTotalMinionsKilled']
-
-
-
-```{r }
-
-
+```{r, include = FALSE}
+pcadata <- prcomp(lol, scale = TRUE)
+pcadata $ rotation <- -1 * pcadata $ rotation
+pcadata $ rotation
+pcadata $ x <- -1 * pcadata $ x
+biplot(pcadata, scale = 0)
+var_explained = pcadata $ sdev ^ 2 / sum(pcadata $ sdev ^ 2)
 ```
 
 
 ```{r }
-
-
+qplot(c(1 : 40), var_explained) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("PCA Plot For All") +
+  ylim(0, 1)
+```
+```{r, include = FALSE}
+pcadata_selected <- prcomp(important, scale = TRUE)
+pcadata_selected $ rotation <- -1 * pcadata_selected $ rotation
+pcadata_selected $ rotation
+pcadata_selected $ x <- -1 * pcadata_selected $ x
+biplot(pcadata_selected, scale = 0)
+var_explained = pcadata_selected $ sdev ^ 2 / sum(pcadata_selected $ sdev ^ 2)
 ```
 
 
 ```{r }
-
-
+qplot(c(1 : 16), var_explained) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("PCA Plot For Selected Vairables") +
+  ylim(0, 1)
 ```
 
+### Visualization 
+
+|       From the Previous EDA results we know two of the most important aspects that are highly correlated with *blue_wins* are gold and experience. We want to visualize the distribution difference between winning and losing caused by those two aspects. And for those two aspects we want to do Total, and Difference separately. For the following plots, red represents red wins/ blue loses, blue represents blue wins/red loses, purple is the overlapping portion. 
+
+#### Focus on Total Gold and Experience
+
+|       Below is what the distribution of total gold and experience for the blue team looks like.
+
+|       Speaking from the results, it looks like winning in general requires more experience and gold.
+
+```{r include=FALSE}
+# separate the data into two
+blue_won <- lol[lol $ blue_wins == '1', ] 
+blue_lost <- lol[lol $ blue_wins == '0', ] 
+
+#begin plotting
+won_gold <- hist(blue_won $ blue_total_gold )
+lost_gold <- hist(blue_lost $ blue_total_gold)
+# I do not want to have repetitive graphs so I am choosing to not show results of this code chunk
+```
 
 ```{r }
+#put them together
+plot(lost_gold, col = rgb(1, 0, 0, 0.1),  
+     main = "Gold and Result Distribution", 
+     xlab = "Gold")
+plot(won_gold, col = rgb(0, 0, 1, 0.1), add = TRUE)
+```
+```{r include=FALSE}
+#begin plotting
+won_exp <- hist(blue_won $ blue_total_experience)
+lost_exp <- hist(blue_lost $ blue_total_experience)
+```
 
+```{r }
+#put them together
+plot(lost_exp, col = rgb(1, 0, 0, 0.1),  
+     main = "Experience and Result Distribution", 
+     xlab = "Experience")
+plot(won_exp, col = rgb(0, 0, 1, 0.1), add = TRUE)
+```
+#### Focus on Gold and Experience Difference
 
+|       From the above EDA results we can see the distribution of total gold and experience for the blue team looks like. But it does not tell us much about what the opposing team situation. So if we want to see the bigger picture we need to check the difference the two teams have on gold and experience.
+
+|       From here we can conclude that although having a positive difference in gold and experience between blue and red teams seems to be an important indicator to victory, there is more to it. We still have blue losing when it has more gold and experience than the red team and vice versa.
+
+```{r include=FALSE}
+#begin plotting
+won_gold_diff <- hist(blue_won $ blue_gold_diff)
+lost_gold_diff <- hist(blue_lost $ blue_gold_diff)
+# I do not want to have repetitive graphs so I am choosing to not show results of this code chunk
+```
+
+```{r }
+#put them together
+plot(lost_gold_diff, col = rgb(1, 0, 0, 0.1),  
+     main = "Gold Difference and Result Distribution", 
+     xlab = "Gold Difference between Blue and Red Teams")
+plot(won_gold_diff, col = rgb(0, 0, 1, 0.1), add = TRUE)
+```
+
+```{r include=FALSE}
+#begin plotting
+won_exp_diff <- hist(blue_won $ blue_experience_diff)
+lost_exp_diff <- hist(blue_lost $ blue_experience_diff)
+```
+
+```{r }
+#put them together
+plot(lost_exp_diff, col = rgb(1, 0, 0, 0.1),  
+     main = "Experience Difference and Result Distribution", 
+     xlab = "Experience Difference between Blue and Red Teams")
+plot(won_exp_diff, col = rgb(0, 0, 1, 0.1), add = TRUE)
 ```
 
 
@@ -249,4 +350,9 @@ cols = ["gameId", "redFirstBlood", 'redKills', 'redEliteMonsters',
 
 ## Modeling
 
+```{r }
+lol_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
+lol_folds
+
+```
 ## Conclusion
