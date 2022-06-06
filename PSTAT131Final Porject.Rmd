@@ -779,7 +779,11 @@ predicted_data_test %>% roc_auc(blue_wins, .pred_0)
 
 |       As we discovered in the process of making this project, we learned that the gold and experience difference are the main predictors in predicting the outcome of a diamond ranked solo LOL rank match. Other variables like how many minions they killed are reflected through gold and experience difference. Majority of the variables do not directly influence the result of the matches. But they will contribute in other aspects since they contribute to gold and experience. 
 
+|           
+
 |       It does not matter who gets the first blood, if we want to win a solo rank in diamond rank, we need to maintain calm and try to earn as much money as possible in the first 10 minutes, and as we have more money we are more capable of leveling up our weapons and kill more enemies and earn more money, in a good cycle. Speaking from experience and our EDA if it is a close match, and you want to win, try your best to kill the elite monsters, not the towers.  
 
-|       Now if we are given a set of data for the first ten minutes of a diamond ranked match, we have a close to 80% accuracy to know if the team won the match or not with our Elastic Net tuned Lasso model. Now have fun trying to convince your friends, they will probably hanging on that 20% which is fair, anyway good luck.
+|           
+
+|       They ROC_AUC scores all ranged somewhere from high 70s to low 80s, which is pretty good. In the future I should consider adding interactive terms when making the recipe. Elastic net tuned Lasso model did the best, and the decision tree model did not do as well as other models. I am surprised that the random forest model did not out perform the other models, since it had the longest run time. Now if we are given a set of data for the first ten minutes of a diamond ranked match, we have a close to 80% accuracy to know if the team won the match or not with our Elastic Net tuned Lasso model. Now have fun trying to convince your friends, they will probably hanging on that 20% which is fair, anyway good luck.
 
