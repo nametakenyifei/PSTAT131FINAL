@@ -322,7 +322,7 @@ lol_recipe <- recipe(blue_wins ~ ., data = lol_train) %>%
   step_normalize(all_predictors())
 ```
 
-|       We now use k-fold cross-validation, with k = 5. Ideally we want to use 10, but it takes a lot of time.
+|       We now use k-fold cross-validation, with k = 5. Ideally we want to use 10, but it takes a lot of time. Cross validation is when we use a single parameter called k that refers to the number of groups that a given data sample is to be split into, and we make them split into trainning and testing sets, and they the samples changes who the testing sets are, so they are cross validating.
 
 ```{r }
 lol_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
@@ -721,7 +721,7 @@ en_best_roc_auc
 |       We are now comparing the best performing fold from each model, and choosing the best performing model. Since we already know LDA and QDA did not out perform Logistic regression model. That left us with the logistic regression, decision tree, random forest, boosted tree and elastic net models.
 We are making a ROC_AUC score table to compare them. 
 
-|       Our Current best performing model is the Elastic Net Tunneling Lasso model.
+|       Our Current best performing model is the Elastic Net- Lasso model.
 
 ```{r }
 roc_auc_table <- matrix(c("Logistic Regression", "Decision Tree", 
@@ -739,6 +739,7 @@ roc_auc_table
 
 |       The training data gives us a ROC_AUC score of 0.8119945, and the testing set gives us a ROC_AUC score of 0.8050239. ROC_AUC scores are capped at 1, so we are doing pretty good, expect since our score is lower for the testing set, we probably over fitted in the process.
 
+|       
 
 
 ```{r }
@@ -766,7 +767,12 @@ predicted_data_test %>% roc_auc(blue_wins, .pred_0)
 ```
 
 
+|       As we look at the confusion map we can see the predictions are not that accurate yet, but it is relatively accurate.
+
 ```{r }
+predicted_data_test %>% 
+  conf_mat(truth = blue_wins, estimate = .pred_class) %>%
+  autoplot(type = "heatmap")
 ```
 
 
