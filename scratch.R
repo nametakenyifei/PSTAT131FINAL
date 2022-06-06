@@ -99,9 +99,9 @@ forest_wf <- workflow() %>%
   add_recipe(lol_recipe)
 
 forest_grid <- grid_regular(mtry(range = c(1, 12)), 
-                            trees(range = c(1, 5)),
-                            min_n(range = c(1, 5)),
-                            levels = 5)
+                            trees(range = c(1, 10)),
+                            min_n(range = c(1, 10)),
+                            levels = 12)
 forest_grid
 
 forest_tune_res <- tune_grid(
@@ -125,7 +125,7 @@ boost_wf <- workflow() %>%
   ) %>%
   add_recipe(lol_recipe)
 
-boost_grid <- grid_regular(trees(range = c(10, 200)), 
+boost_grid <- grid_regular(trees(range = c(1, 200)), 
                            levels = 10)
 
 boost_tune_res <- tune_grid(
@@ -147,7 +147,7 @@ en_workflow <- workflow() %>%
   add_model(elastic_net_spec)
 
 en_grid <- grid_regular(penalty(range = c(-5, 5)), 
-                        mixture(range = c(0, 1)), levels = 10)
+                        mixture(range = c(0, 1)), levels = 12)
 
 tune_res <- tune_grid(
   en_workflow,

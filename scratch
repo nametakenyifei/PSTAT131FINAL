@@ -1,9 +1,0 @@
-cols = ["gameId", "redFirstBlood", 'redKills', 'redEliteMonsters',
-        'redDragons', 'redTotalMinionsKilled', 
-        'redTotalJungleMinionsKilled', 'redGoldDiff',
-        'redExperienceDiff', 'redCSPerMin', 'redGoldPerMin',
-        'redHeralds', 'blueGoldDiff', 'blueExperienceDiff', 
-        'blueCSPerMin', 'blueGoldPerMin', 'blueTotalMinionsKilled']
-
-ggplot(important, aes(Count)) + geom_histogram(bins = 30) +
-  facet_grid(.~blue_wins)

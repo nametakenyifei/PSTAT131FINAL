@@ -6,7 +6,7 @@ output:
     html_document:
       toc: true
       toc_float: true
-      code_folding: show
+      code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -289,7 +289,7 @@ plot(won_exp_diff, col = rgb(0, 0, 1, 0.1), add = TRUE)
 |       
 |       The data is split with a 75% training, 25% testing split. Stratified with blue_wins.
 |       
-|       We want to factor *blue_wins* and *blue_first_blood*, because they represent yes and no towards if blue team won and if blue team got the first blood, they do not really represnt any numeric values.
+|       We want to factor *blue_wins* and *blue_first_blood*, because they represent yes and no towards if blue team won and if blue team got the first blood, they do not really represent any numeric values.
 
 ```{r }
 set.seed(2022)
@@ -314,7 +314,7 @@ dim(lol_train) # check if we have the right proportion
 
 |       Now we are going to start model building and fitting.
 
-First we need to create a recipe for these model. We have no missing data so we do not need step_impute_linear in this case, if we do we will need it. Since we have factor variables we need to use step_dummy to make them into numeric variables. And we use step_normalize to center and scale our now numeric data.
+|       First we need to create a recipe for these model. We have no missing data so we do not need step_impute_linear in this case, if we do we will need it. Since we have factor variables we need to use step_dummy to make them into numeric variables. And we use step_normalize to center and scale our now numeric data.
 
 ```{r }
 lol_recipe <- recipe(blue_wins ~ ., data = lol_train) %>% 
@@ -322,13 +322,15 @@ lol_recipe <- recipe(blue_wins ~ ., data = lol_train) %>%
   step_normalize(all_predictors())
 ```
 
-We now use k-fold cross-validation, with k = 5.
+|       We now use k-fold cross-validation, with k = 5. Ideally we want to use 10, but it takes a lot of time.
+
 ```{r }
 lol_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
 lol_folds
 ```
 
-Now we set up control for lda and qda models
+|       Now we set up control for lda and qda models
+
 ```{r }
 control <- control_resamples(save_pred = TRUE)
 ```
@@ -336,7 +338,8 @@ control <- control_resamples(save_pred = TRUE)
 
 ### Logistic Regression
 
-Making a model, a workflow and a fit for logistic regression
+|       Making a model, a workflow and a fit for logistic regression with the glm engine. Since we are classifying if the team win or lose the mode is classification, which applies to other models we are going to build later as well.
+
 ```{r }
 log_reg <- logistic_reg() %>% 
   set_engine("glm") %>% 
@@ -349,7 +352,8 @@ log_wkflow <- workflow() %>%
 log_fit <- fit_resamples(log_wkflow, lol_folds)
 ```
 
-check our result
+|       check our result
+
 ```{r }
 collect_metrics(log_fit)
 ```
@@ -358,9 +362,10 @@ collect_metrics(log_fit)
 
 ### Linear Discriminant Analysis
 
-Same steps as the previous model. We technically can use the same recipe as the previous model. We can use the same folds as before so no need to create new folds.
+|       Same steps as the previous model. We technically can use the same recipe as the previous model. We can use the same folds as before so no need to create new folds.
 
-Making a model, a workflow and a fit for Linear Discriminant Analysis
+|       Making a model, a workflow and a fit for Linear Discriminant Analysis, this time we are using the MASS engine.
+
 ```{r }
 lda_mod <- discrim_linear() %>% 
   set_engine("MASS") %>% 
@@ -375,7 +380,8 @@ lda_fit <- fit_resamples(resamples = lol_folds,
                          control = control)
 ```
 
- check our result
+|       check our result
+
 ```{r }
 collect_metrics(lda_fit)
 ```
@@ -385,9 +391,10 @@ collect_metrics(lda_fit)
 
 ### Quadratic Discriminant Analysis
 
-Same steps as the previous model. Using the same recipe, folds and control.
+|       Same steps as the previous model. Using the same recipe, folds and control.
 
-Making a model, a workflow and a fit for Linear Discriminant Analysis
+|       Making a model, a workflow and a fit for Linear Discriminant Analysis, This time we are also using the mass engine, but we use a different function, instead of discrim_linear(), we use discrim_quad().
+
 ```{r }
 qda_mod <- discrim_quad() %>% 
   set_engine("MASS") %>% 
@@ -402,21 +409,29 @@ qda_fit <- fit_resamples(resamples = lol_folds,
                          control = control)
 ```
 
-check our result
+|       check our result
+
 ```{r }
 collect_metrics(qda_fit)
 ```
 
 
-Now let us gather who did the best on the folds
+|       Now let us gather who did the best on the folds so far
 
 ```{r }
 collect_metrics(log_fit)
 collect_metrics(lda_fit)
 collect_metrics(qda_fit)
+
+log_best_roc_auc <- collect_metrics(log_fit) %>% 
+  slice(2) %>% 
+  pull(mean)
+log_best_roc_auc
 ```
 
-Let's see how the best performing model so far works on the testing set.
+|       Let's see how the best performing model so far works on the testing set.
+|       It is doing a little better than the training set, we were not over fitting, which is good. But it is not doing much better than the training set. We are going to work on more models to see if there are better models out there at predicting the results. 
+
 ```{r }
 log_test <- fit(log_wkflow, lol_test)
 predict(log_test, new_data = lol_test, type = "class") %>% 
@@ -426,20 +441,11 @@ predict(log_test, new_data = lol_test, type = "class") %>%
 ```
 
 
-```{r }
-
-
-```
-
-
-
-###
-
-
 
 ### Decision Tree
 
-First we do the same thing, set engine, mode, and workflow.
+|       First we do the same thing, set engine, mode, and workflow.
+
 ```{r }
 tree_spec <- decision_tree() %>%
   set_engine("rpart")
@@ -455,13 +461,13 @@ class_tree_wf <- workflow() %>%
   add_recipe(lol_recipe)
 ```
 
-Then we start setting up our grid, and re sampling.
+|       Then we start setting up our grid, and re-sampling.
 
 ```{r}
 param_grid <- grid_regular(cost_complexity(range = c(-5, -1)), levels = 5)
 ```
 
-```{}
+```{r, eval = FALSE}
 tune_res <- tune_grid(
   class_tree_wf, 
   resamples = lol_folds, 
@@ -470,18 +476,22 @@ tune_res <- tune_grid(
 )
 ```
 
-To save time knitting, I used write_rds to save the result we got. Now we just need to read it.
+|       To save time knitting, I used write_rds to save the result we got. Now we just need to read it.
 
 ```{r }
 decision_tree <- read_rds("model_results/dt_tune.rds")
+decision_tree
 ```
 
 
-Here is an plot presenting us the relationship between roc_auc and the cost complicity parameter.
+|       Here is an plot presenting us the relationship between roc_auc and the cost complicity parameter. ROC_AUC peaks around 1e^-3.
 
 ```{r}
 autoplot(decision_tree)
 ```
+
+|       Now we are collecting the best performing pruned tree, and complexity
+
 ```{r}
 collection1 <- collect_metrics(decision_tree) %>% arrange(desc(mean))
 collection1
@@ -500,12 +510,18 @@ class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
 class_tree_final_fit <- fit(class_tree_final, data = lol_train)
 ```
 
+|       This is what our decision tree looks like.
+
 ```{r}
 class_tree_final_fit %>%
   extract_fit_engine() %>%
   rpart.plot()
 ```
+
+
 ### Random Forest
+
+|       First we do the same thing, set engine, mode, and workflow. We are tuning our parameters, setting our engine to be ranger and importance to be impurity.
 
 ```{r}
 forest_spec <- rand_forest(
@@ -525,15 +541,18 @@ forest_wf <- workflow() %>%
   add_recipe(lol_recipe)
 ```
 
+|       Then we set up the grid.
 ```{r}
-forest_grid <- grid_regular(mtry(range = c(1, 8)), 
+forest_grid <- grid_regular(mtry(range = c(1, 12)), 
                             trees(range = c(1, 10)),
-                            min_n(range = c(1, 5)),
-                            levels = 8)
+                            min_n(range = c(1, 10)),
+                            levels = 23)
 forest_grid
 ```
 
-```{}
+|       Then we tune the model and repeated cross fold validation
+
+```{r, eval = FALSE}
 forest_tune_res <- tune_grid(
   forest_wf, 
   resamples = lol_folds, 
@@ -542,10 +561,19 @@ forest_tune_res <- tune_grid(
 )
 ```
 
+|       We load our results here
+
 ```{r }
 forest <- read_rds("model_results/forest_tune.rds")
 ```
 
+|       From the result it seems our model works better with less randomly selected predictors and more nodes and trees.
+
+```{r}
+autoplot(forest)
+```
+
+|       Then we collect the best performing forest, and present its roc_auc value.
 
 ```{r}
 collection2 <- collect_metrics(forest) %>% 
@@ -566,6 +594,8 @@ forest_best_roc_auc
 
 ### Boosted Tree
 
+|       First we do the same thing, set engine, mode, and workflow. This time we are using the xgboost engine, and we also tune our parameters this time.
+
 ```{r}
 boost_spec <- boost_tree(
   mode = "classification",
@@ -580,13 +610,17 @@ boost_wf <- workflow() %>%
   add_recipe(lol_recipe)
 ```
 
+|       Then we set up the grid.
+
 ```{r}
-boost_grid <- grid_regular(trees(range = c(10, 2000)), 
+boost_grid <- grid_regular(trees(range = c(1, 200)), 
                            levels = 10)
 boost_grid
 ```
 
-```{}
+|       Then we tune the model and repeated cross fold validation
+
+```{r, eval = FALSE}
 boost_tune_res <- tune_grid(
   boost_wf, 
   resamples = pokemon_folds, 
@@ -595,21 +629,28 @@ boost_tune_res <- tune_grid(
 )
 ```
 
+|       We load our results here
+
 ```{r }
 boosted <- read_rds("model_results/bt_tune.rds")
 
 ```
 
+|       From the result it seems this model works better with less trees.
 
 ```{r}
 autoplot(boosted)
 ```
 
+|       Then we collect the best performing forest, and present its roc_auc value.
+
 ```{r}
 collection3 <- collect_metrics(boosted) %>% arrange(desc(mean))
 collection3
+
 best_boost <- select_best(boosted, metric = "roc_auc")
 best_boost
+
 boost_best_roc_auc <- collection3 %>% 
   slice(1) %>% 
   pull(mean)
@@ -617,54 +658,10 @@ boost_best_roc_auc
 ```
 
 
-```{r }
 
+### Elastic Net- Lasso
 
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-### Elastic Net
+|       First we do the same thing, set engine, mode, and workflow. This time we are tuning penalty and mixture using multinom_reg with the glmnet engine.
 
 ```{r }
 elastic_net_spec <- multinom_reg(penalty = tune(), 
@@ -677,11 +674,12 @@ en_workflow <- workflow() %>%
   add_model(elastic_net_spec)
 
 en_grid <- grid_regular(penalty(range = c(-5, 5)), 
-                        mixture(range = c(0, 1)), levels = 10)
+                        mixture(range = c(0, 1)), levels = 12)
 
 ```
 
-```{}
+|       We tune our grids, and re-sample. Essentially doing folded cross validation again but with a different model.
+```{r, eval = FALSE}
 tune_res <- tune_grid(
   en_workflow,
   resamples = lol_folds, 
@@ -690,37 +688,98 @@ tune_res <- tune_grid(
 
 ```
 
+|       Now we read the results we saved in rds.
 ```{r }
 elastic <- read_rds("model_results/en.rds")
 ```
 
+
+|       It looks like the model does well with low regulation and high penalty.
+
 ```{r }
 autoplot(elastic )
+```
+
+|       Then we collect the best performing forest, and present its roc_auc value.
+
+```{r }
+collection4 <- collect_metrics(elastic) %>% arrange(desc(mean))
+collection4
+
+best_en_model <- select_best(elastic, metric = "roc_auc")
+best_en_model
+
+en_best_roc_auc <- collection4 %>% 
+  slice(1) %>% 
+  pull(mean)
+en_best_roc_auc
+```
+
+
+### Now Let Us Compare All the Models.
+
+|       We are now comparing the best performing fold from each model, and choosing the best performing model. Since we already know LDA and QDA did not out perform Logistic regression model. That left us with the logistic regression, decision tree, random forest, boosted tree and elastic net models.
+We are making a ROC_AUC score table to compare them. 
+
+|       Our Current best performing model is the Elastic Net Tunneling Lasso model.
+
+```{r }
+roc_auc_table <- matrix(c("Logistic Regression", "Decision Tree", 
+                          "Random forest", "Boosted Tree", "Elastic Net",
+                          log_best_roc_auc, tree_best_roc_auc,
+                          forest_best_roc_auc, boost_best_roc_auc,
+                          en_best_roc_auc), ncol = 5, byrow = TRUE)
+roc_auc_table
 
 ```
+
+### Fitting the Best Model on Trainning and Test Sets
+
+|       Now we want to see how fitting the optimal tuned model to training and test sets looks like.
+
+|       The training data gives us a ROC_AUC score of 0.8119945, and the testing set gives us a ROC_AUC score of 0.8050239. ROC_AUC scores are capped at 1, so we are doing pretty good, expect since our score is lower for the testing set, we probably over fitted in the process.
+
 
 
 ```{r }
 best_model <- select_best(elastic, metric = "roc_auc")
+final <- finalize_workflow(en_workflow, best_model)
 
-en_final <- finalize_workflow(en_workflow, best_model)
+fit_final_train <- fit(final, data = lol_train)
+fit_final_train
 
-en_final_fit <- fit(en_final, data = lol_train)
-
-predicted_data <- augment(en_final_fit, new_data = lol_test) %>% 
+predicted_data_train <- augment(fit_final_train, new_data = lol_train) %>% 
   select(blue_wins, starts_with(".pred"))
 
-predicted_data
-
-predicted_data %>% roc_auc(blue_wins, .pred_0)
+predicted_data_train %>% roc_auc(blue_wins, .pred_0)
 ```
+
 
 ```{r }
+fit_final_test <- fit(final, data = lol_test)
+fit_final_test
 
+predicted_data_test <- augment(fit_final_train, new_data = lol_test) %>% 
+  select(blue_wins, starts_with(".pred"))
+
+predicted_data_test %>% roc_auc(blue_wins, .pred_0)
 ```
 
-predicted_data %>% 
-  conf_mat(truth = blue_wins, estimate = .pred_0) %>%
-  autoplot(type = "heatmap")
+
+```{r }
+```
+
+
+```{r }
+```
+
+
 
 ## Conclusion
+
+|       As we discovered in the process of making this project, we learned that the gold and experience difference are the main predictors in predicting the outcome of a diamond ranked solo LOL rank match. Other variables like how many minions they killed are reflected through gold and experience difference. Majority of the variables do not directly influence the result of the matches. But they will contribute in other aspects since they contribute to gold and experience. 
+
+|       It does not matter who gets the first blood, if we want to win a solo rank in diamond rank, we need to maintain calm and try to earn as much money as possible in the first 10 minutes, and as we have more money we are more capable of leveling up our weapons and kill more enemies and earn more money, in a good cycle. Speaking from experience and our EDA if it is a close match, and you want to win, try your best to kill the elite monsters, not the towers.  
+
+|       Now if we are given a set of data for the first ten minutes of a diamond ranked match, we have a close to 80% accuracy to know if the team won the match or not with our Elastic Net tuned Lasso model. Now have fun trying to convince your friends, they will probably hanging on that 20% which is fair, anyway good luck.
+

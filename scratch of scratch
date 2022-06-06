@@ -1,0 +1,31 @@
+WELCOME TO THE WASTE LAND
+
+
+cols = ["gameId", "redFirstBlood", 'redKills', 'redEliteMonsters',
+        'redDragons', 'redTotalMinionsKilled', 
+        'redTotalJungleMinionsKilled', 'redGoldDiff',
+        'redExperienceDiff', 'redCSPerMin', 'redGoldPerMin',
+        'redHeralds', 'blueGoldDiff', 'blueExperienceDiff', 
+        'blueCSPerMin', 'blueGoldPerMin', 'blueTotalMinionsKilled']
+
+ggplot(important, aes(Count)) + geom_histogram(bins = 30) +
+  facet_grid(.~blue_wins)
+    
+    step_interact(terms = ~ starts_with("type"):shucked_weight +
+                  longest_shell:diameter + 
+                  shucked_weight:shell_weight) %>% 
+                  
+en_final <- finalize_workflow(en_workflow, best_model)
+
+en_final_fit <- fit(en_final, data = lol_train)
+
+predicted_data <- augment(en_final_fit, new_data = lol_test) %>% 
+  select(blue_wins, starts_with(".pred"))
+
+predicted_data
+
+predicted_data %>% roc_auc(blue_wins, .pred_0)
+
+predicted_data %>% 
+  conf_mat(truth = blue_wins, estimate = .pred_0) %>%
+  autoplot(type = "heatmap")
