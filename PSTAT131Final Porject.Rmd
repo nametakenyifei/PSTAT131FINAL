@@ -47,6 +47,12 @@ library(ISLR2)
 library(purrr)
 library(janitor)
 library(psych) 
+library(randomForest)
+library(xgboost)
+library(rpart.plot)
+library(ranger)
+library(vip)
+library(pROC)
 tidymodels_prefer()
 ```
 
@@ -63,7 +69,7 @@ is.null(loldata)
 ### Change Variable Names
 
 |       Since we do not have any null entries, wee can directly move on to the next part, normally we would need to deselect some rows or fill in the null with zeros before moving on.
-
+|       
 |       Although from a glance the variable names look pretty unique and not problem causing, we want to use clean the names to avoid potential problems in the future, such as forgetting to capitalize certain letters in the variable name.
 
 ```{r}
@@ -84,17 +90,16 @@ lol_blue <-  lol[ , 0:21]
 colnames(lol_blue) # check if we have the right columns
 ```
 
-|       For this part please take a look at the Exploratory Data Analysis section first. We want to extract the variables that appears to be significantly correlated with blue_wins.
+|       For this part please take a look at the Exploratory Data Analysis section first. We want to extract the unique variables that appears to be significantly correlated with *blue_wins*. For example, although both *blue_total_gold"* and *blue_gold_per_min* appear to be highly positively correlated with *blue_wins*, the latter is directly correlated to the prior, and we do not need it.
 
 ```{r }
-important <- lol_blue[c("game_id", "blue_wins", "blue_first_blood", 
+important <- lol_blue[c( "blue_wins", "blue_first_blood", 
                    "blue_kills",  "blue_deaths",
                    "blue_assists","blue_elite_monsters", 
                    "blue_dragons", "blue_total_gold", 
                    "blue_avg_level", "blue_total_experience", 
                    "blue_gold_diff", "blue_experience_diff", 
-                   "blue_total_minions_killed", "blue_cs_per_min", 
-                   "blue_gold_per_min")]
+                   "blue_total_minions_killed")]
 
 ```
 
@@ -104,31 +109,14 @@ important
 
 ```
 
-## Setting Seed and Data Spliting
 
-|       The year is 2022 so I am setting the seed to be 2022. It is easy to remember, and it is not too small.
-
-|       The data is split with a 75% training, 25% testing split. Stratified with blue_wins.
-
-
-```{r }
-set.seed(2022)
-
-lol_split <- lol %>% 
-  initial_split(strata = blue_wins, prop = 0.75)
-lol_train <- training(lol_split)
-lol_test <- testing(lol_split)
-
-dim(lol_train) # check if we have the right proportion
-
-```
 
 ## Exploratory Data Analysis
 
 ### Check Fairness of Data
 
 |       We want to make sure our data sample was randomly drawn.
-
+|       
 |       From the result we can see there is a very slight difference(insignificant) between the number of blue wins and loses.
 
 ```{r }
@@ -149,7 +137,7 @@ describe(lol)
 ### Narrow Down Variables
 
 |       Here we are checking the correlation between all the variables, but we specifically need to pay more attention to what is correlated with blue_wins.
-
+|       
 |       From the result of this auto-plot, we can see there are variables that correlate with blue_wins at about the same scale but in totally opposite ways, which proves our assumption that there are repetitive variables to be correct. 
 
 ```{r, fig.height = 10, fig.width = 10 }
@@ -158,6 +146,7 @@ lol %>%
   cor(use = "complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE)
 ```
+
 |       We want to deselect some variables based on the result of the following graph.
 
 ```{r, fig.height = 10, fig.width = 10 }
@@ -209,7 +198,7 @@ var_explained = pcadata_selected $ sdev ^ 2 / sum(pcadata_selected $ sdev ^ 2)
 
 
 ```{r }
-qplot(c(1 : 16), var_explained) + 
+qplot(c(1 : 13), var_explained) + 
   geom_line() + 
   xlab("Principal Component") + 
   ylab("Variance Explained") +
@@ -224,10 +213,10 @@ qplot(c(1 : 16), var_explained) +
 #### Focus on Total Gold and Experience
 
 |       Below is what the distribution of total gold and experience for the blue team looks like.
-
+|       
 |       Speaking from the results, it looks like winning in general requires more experience and gold.
 
-```{r include=FALSE}
+```{r include = FALSE}
 # separate the data into two
 blue_won <- lol[lol $ blue_wins == '1', ] 
 blue_lost <- lol[lol $ blue_wins == '0', ] 
@@ -245,7 +234,7 @@ plot(lost_gold, col = rgb(1, 0, 0, 0.1),
      xlab = "Gold")
 plot(won_gold, col = rgb(0, 0, 1, 0.1), add = TRUE)
 ```
-```{r include=FALSE}
+```{r include = FALSE}
 #begin plotting
 won_exp <- hist(blue_won $ blue_total_experience)
 lost_exp <- hist(blue_lost $ blue_total_experience)
@@ -261,10 +250,10 @@ plot(won_exp, col = rgb(0, 0, 1, 0.1), add = TRUE)
 #### Focus on Gold and Experience Difference
 
 |       From the above EDA results we can see the distribution of total gold and experience for the blue team looks like. But it does not tell us much about what the opposing team situation. So if we want to see the bigger picture we need to check the difference the two teams have on gold and experience.
-
+|       
 |       From here we can conclude that although having a positive difference in gold and experience between blue and red teams seems to be an important indicator to victory, there is more to it. We still have blue losing when it has more gold and experience than the red team and vice versa.
 
-```{r include=FALSE}
+```{r include = FALSE}
 #begin plotting
 won_gold_diff <- hist(blue_won $ blue_gold_diff)
 lost_gold_diff <- hist(blue_lost $ blue_gold_diff)
@@ -279,7 +268,7 @@ plot(lost_gold_diff, col = rgb(1, 0, 0, 0.1),
 plot(won_gold_diff, col = rgb(0, 0, 1, 0.1), add = TRUE)
 ```
 
-```{r include=FALSE}
+```{r include = FALSE}
 #begin plotting
 won_exp_diff <- hist(blue_won $ blue_experience_diff)
 lost_exp_diff <- hist(blue_lost $ blue_experience_diff)
@@ -294,65 +283,444 @@ plot(won_exp_diff, col = rgb(0, 0, 1, 0.1), add = TRUE)
 ```
 
 
-```{r }
+## Setting Seed and Data Spliting
 
-
-```
-
-
-```{r }
-
-
-```
-
+|       The year is 2022 so I am setting the seed to be 2022. It is easy to remember, and it is not too small.
+|       
+|       The data is split with a 75% training, 25% testing split. Stratified with blue_wins.
+|       
+|       We want to factor *blue_wins* and *blue_first_blood*, because they represent yes and no towards if blue team won and if blue team got the first blood, they do not really represnt any numeric values.
 
 ```{r }
+set.seed(2022)
 
+important <- important  %>% 
+  mutate(blue_wins = factor(blue_wins, 
+                           levels = c(0, 1)),
+         blue_first_blood = factor(blue_first_blood),
+         )
 
-```
+lol_split <- important %>% 
+  initial_split(strata = blue_wins, prop = 0.75)
+lol_train <- training(lol_split)
+lol_test <- testing(lol_split)
 
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
-
-```
-
-
-```{r }
-
+dim(lol_train) # check if we have the right proportion
 
 ```
 
 
 ## Modeling
 
+|       Now we are going to start model building and fitting.
+
+First we need to create a recipe for these model. We have no missing data so we do not need step_impute_linear in this case, if we do we will need it. Since we have factor variables we need to use step_dummy to make them into numeric variables. And we use step_normalize to center and scale our now numeric data.
+
+```{r }
+lol_recipe <- recipe(blue_wins ~ ., data = lol_train) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_normalize(all_predictors())
+```
+
+We now use k-fold cross-validation, with k = 5.
 ```{r }
 lol_folds <- vfold_cv(lol_train, v = 5, strata = 'blue_wins')
 lol_folds
+```
+
+Now we set up control for lda and qda models
+```{r }
+control <- control_resamples(save_pred = TRUE)
+```
+
+
+### Logistic Regression
+
+Making a model, a workflow and a fit for logistic regression
+```{r }
+log_reg <- logistic_reg() %>% 
+  set_engine("glm") %>% 
+  set_mode("classification")
+
+log_wkflow <- workflow() %>% 
+  add_model(log_reg) %>% 
+  add_recipe(lol_recipe)
+
+log_fit <- fit_resamples(log_wkflow, lol_folds)
+```
+
+check our result
+```{r }
+collect_metrics(log_fit)
+```
+
+
+
+### Linear Discriminant Analysis
+
+Same steps as the previous model. We technically can use the same recipe as the previous model. We can use the same folds as before so no need to create new folds.
+
+Making a model, a workflow and a fit for Linear Discriminant Analysis
+```{r }
+lda_mod <- discrim_linear() %>% 
+  set_engine("MASS") %>% 
+  set_mode("classification")
+
+lda_wkflow <- workflow() %>% 
+  add_recipe(lol_recipe ) %>% 
+  add_model(lda_mod)
+
+lda_fit <- fit_resamples(resamples = lol_folds, 
+                         lda_wkflow,  
+                         control = control)
+```
+
+ check our result
+```{r }
+collect_metrics(lda_fit)
+```
+
+
+
+
+### Quadratic Discriminant Analysis
+
+Same steps as the previous model. Using the same recipe, folds and control.
+
+Making a model, a workflow and a fit for Linear Discriminant Analysis
+```{r }
+qda_mod <- discrim_quad() %>% 
+  set_engine("MASS") %>% 
+  set_mode("classification")
+
+qda_wkflow <- workflow() %>% 
+  add_recipe(lol_recipe ) %>% 
+  add_model(qda_mod)
+
+qda_fit <- fit_resamples(resamples = lol_folds, 
+                         qda_wkflow,  
+                         control = control)
+```
+
+check our result
+```{r }
+collect_metrics(qda_fit)
+```
+
+
+Now let us gather who did the best on the folds
+
+```{r }
+collect_metrics(log_fit)
+collect_metrics(lda_fit)
+collect_metrics(qda_fit)
+```
+
+Let's see how the best performing model so far works on the testing set.
+```{r }
+log_test <- fit(log_wkflow, lol_test)
+predict(log_test, new_data = lol_test, type = "class") %>% 
+  bind_cols(lol_test %>% select(blue_wins)) %>% 
+  accuracy(truth = blue_wins, estimate = .pred_class)
 
 ```
+
+
+```{r }
+
+
+```
+
+
+
+###
+
+
+
+### Decision Tree
+
+First we do the same thing, set engine, mode, and workflow.
+```{r }
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec %>%
+  set_mode("classification")
+
+```
+
+```{r}
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
+  add_recipe(lol_recipe)
+```
+
+Then we start setting up our grid, and re sampling.
+
+```{r}
+param_grid <- grid_regular(cost_complexity(range = c(-5, -1)), levels = 5)
+```
+
+```{}
+tune_res <- tune_grid(
+  class_tree_wf, 
+  resamples = lol_folds, 
+  grid = param_grid, 
+  metrics = metric_set(roc_auc)
+)
+```
+
+To save time knitting, I used write_rds to save the result we got. Now we just need to read it.
+
+```{r }
+decision_tree <- read_rds("model_results/dt_tune.rds")
+```
+
+
+Here is an plot presenting us the relationship between roc_auc and the cost complicity parameter.
+
+```{r}
+autoplot(decision_tree)
+```
+```{r}
+collection1 <- collect_metrics(decision_tree) %>% arrange(desc(mean))
+collection1
+
+best_pruned <- select_best(decision_tree, metric = "roc_auc")
+best_pruned
+
+tree_best_roc_auc <- collection1 %>% 
+  slice(1) %>% 
+  pull(mean)
+tree_best_roc_auc
+```
+```{r}
+best_complexity <- select_best(decision_tree)
+class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
+class_tree_final_fit <- fit(class_tree_final, data = lol_train)
+```
+
+```{r}
+class_tree_final_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+### Random Forest
+
+```{r}
+forest_spec <- rand_forest(
+  mode = "classification",
+  mtry = tune(),
+  trees = tune(),
+  min_n = tune()
+)%>%
+  set_engine("ranger", importance = "impurity") 
+
+forest_wf <- workflow() %>%
+  add_model(forest_spec %>% 
+              set_args(mtry = tune(), trees = tune(),
+                       min_n = tune()
+                       )
+            ) %>%
+  add_recipe(lol_recipe)
+```
+
+```{r}
+forest_grid <- grid_regular(mtry(range = c(1, 8)), 
+                            trees(range = c(1, 10)),
+                            min_n(range = c(1, 5)),
+                            levels = 8)
+forest_grid
+```
+
+```{}
+forest_tune_res <- tune_grid(
+  forest_wf, 
+  resamples = lol_folds, 
+  grid = forest_grid, 
+  metrics = metric_set(roc_auc)
+)
+```
+
+```{r }
+forest <- read_rds("model_results/forest_tune.rds")
+```
+
+
+```{r}
+collection2 <- collect_metrics(forest) %>% 
+  arrange(desc(mean))
+
+collection2
+
+best_forest <- select_best(forest, metric = "roc_auc")
+best_forest
+
+forest_best_roc_auc <- collection2 %>% 
+  slice(1) %>% 
+  pull(mean)
+
+forest_best_roc_auc
+```
+
+
+### Boosted Tree
+
+```{r}
+boost_spec <- boost_tree(
+  mode = "classification",
+  engine = "xgboost",
+  trees = tune(),
+)
+boost_wf <- workflow() %>%
+  add_model(boost_spec %>% 
+              set_args(trees = tune()
+                       )
+            ) %>%
+  add_recipe(lol_recipe)
+```
+
+```{r}
+boost_grid <- grid_regular(trees(range = c(10, 2000)), 
+                           levels = 10)
+boost_grid
+```
+
+```{}
+boost_tune_res <- tune_grid(
+  boost_wf, 
+  resamples = pokemon_folds, 
+  grid = boost_grid, 
+  metrics = metric_set(roc_auc)
+)
+```
+
+```{r }
+boosted <- read_rds("model_results/bt_tune.rds")
+
+```
+
+
+```{r}
+autoplot(boosted)
+```
+
+```{r}
+collection3 <- collect_metrics(boosted) %>% arrange(desc(mean))
+collection3
+best_boost <- select_best(boosted, metric = "roc_auc")
+best_boost
+boost_best_roc_auc <- collection3 %>% 
+  slice(1) %>% 
+  pull(mean)
+boost_best_roc_auc
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+
+```{r }
+
+
+```
+
+### Elastic Net
+
+```{r }
+elastic_net_spec <- multinom_reg(penalty = tune(), 
+                                 mixture = tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("glmnet")
+
+en_workflow <- workflow() %>% 
+  add_recipe(lol_recipe) %>% 
+  add_model(elastic_net_spec)
+
+en_grid <- grid_regular(penalty(range = c(-5, 5)), 
+                        mixture(range = c(0, 1)), levels = 10)
+
+```
+
+```{}
+tune_res <- tune_grid(
+  en_workflow,
+  resamples = lol_folds, 
+  grid = en_grid
+)
+
+```
+
+```{r }
+elastic <- read_rds("model_results/en.rds")
+```
+
+```{r }
+autoplot(elastic )
+
+```
+
+
+```{r }
+best_model <- select_best(elastic, metric = "roc_auc")
+
+en_final <- finalize_workflow(en_workflow, best_model)
+
+en_final_fit <- fit(en_final, data = lol_train)
+
+predicted_data <- augment(en_final_fit, new_data = lol_test) %>% 
+  select(blue_wins, starts_with(".pred"))
+
+predicted_data
+
+predicted_data %>% roc_auc(blue_wins, .pred_0)
+```
+
+```{r }
+
+```
+
+predicted_data %>% 
+  conf_mat(truth = blue_wins, estimate = .pred_0) %>%
+  autoplot(type = "heatmap")
+
 ## Conclusion
